@@ -1,22 +1,33 @@
 import axios from "axios";
 
+// ─── Token In-Memory State ──────────────────────────────────────────────────
+let _accessToken = "";
+
+export const setAccessToken = (token) => {
+  _accessToken = token;
+};
+
+export const getAccessToken = () => {
+  return _accessToken;
+};
+
+const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
 // ─── Axios Instance Create Karo ─────────────────────────────────────────────
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api",
+  baseURL,
+  withCredentials: true, // ← HAR request ke saath HttpOnly cookies bhejne ke liye zaroori hai
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// ─── REQUEST INTERCEPTOR: Har request se pehle accessToken attach karo ──────────
+// ─── REQUEST INTERCEPTOR: Har request se pehle in-memory accessToken attach karo ───
 api.interceptors.request.use(
   (config) => {
-    // Check if running on browser (client-side)
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("accessToken");
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+    const token = getAccessToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -35,29 +46,22 @@ api.interceptors.response.use(
 
     // Agar error 401 (Unauthorized) hai aur humne pehle retry nahi kiya hai
     if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true; // Retry flag lagao taake infinite loop na bane
+      originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem("refreshToken");
-
-        if (!refreshToken) {
-          // Refresh token nahi hai toh seedha logout karwao
-          handleGlobalLogout();
-          return Promise.reject(error);
-        }
-
         // Naya Access Token maango backend se
-        // Note: Hum api instance ki jagah standard axios call karenge taake interceptor loop na ho
+        // Note: Body khali bhejenge kyunki refresh token automatically cookie mein jaayega
         const response = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/auth/refresh`,
-          { refreshToken }
+          `${baseURL}/auth/refresh`,
+          {},
+          { withCredentials: true } // ← Credentials ke sath call karo
         );
 
         if (response.data.success) {
           const { accessToken } = response.data;
 
-          // LocalStorage update karo
-          localStorage.setItem("accessToken", accessToken);
+          // In-memory state update karo
+          setAccessToken(accessToken);
 
           // Purani request ke headers ko naye token se update karo
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
@@ -66,7 +70,6 @@ api.interceptors.response.use(
           return api(originalRequest);
         }
       } catch (refreshError) {
-        // Agar refresh token bhi expire ho gaya hai
         console.error("Refresh token verification failed, logging out...", refreshError);
         handleGlobalLogout();
         return Promise.reject(refreshError);
@@ -79,11 +82,9 @@ api.interceptors.response.use(
 
 // ─── HELPER: Global Logout Function ──────────────────────────────────────────
 const handleGlobalLogout = () => {
+  setAccessToken("");
   if (typeof window !== "undefined") {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
-    // Window reload karke ya home/login page pe redirect kardo
+    localStorage.removeItem("user"); // sirf user info store rahegi non-critical data
     window.location.href = "/login";
   }
 };

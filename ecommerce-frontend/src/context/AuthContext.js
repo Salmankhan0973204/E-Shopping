@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from "react";
-import api from "../lib/axios";
+import api, { setAccessToken } from "../lib/axios";
 import { useRouter } from "next/navigation";
 
 const AuthContext = createContext();
@@ -11,15 +11,32 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // ─── Initial Load Check ──────────────────────────────────────────────────
+  // ─── Initial Load Check (Silent Refresh) ──────────────────────────────────
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const token = localStorage.getItem("accessToken");
+    const initializeAuth = async () => {
+      try {
+        // App load hote hi backend se naya access token maango (cookies automatically jayengi)
+        const response = await api.post("/auth/refresh");
+        if (response.data.success) {
+          const { accessToken } = response.data;
+          setAccessToken(accessToken);
 
-    if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+          // User detail browser database (localStorage) se uthao
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            setUser(JSON.parse(storedUser));
+          }
+        }
+      } catch (error) {
+        // Agar refresh fail ho (ya user first time aaya ho), clean up local state
+        localStorage.removeItem("user");
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
   }, []);
 
   // ─── REGISTER FUNCTION ────────────────────────────────────────────────────
@@ -33,11 +50,12 @@ export function AuthProvider({ children }) {
       });
 
       if (response.data.success) {
-        const { accessToken, refreshToken, user: userData } = response.data;
+        const { accessToken, user: userData } = response.data;
 
-        // Save to local storage
-        localStorage.setItem("accessToken", accessToken);
-        localStorage.setItem("refreshToken", refreshToken);
+        // In-memory update karo (Secure!)
+        setAccessToken(accessToken);
+        
+        // Localstorage mein sirf user info save karo (non-sensitive)
         localStorage.setItem("user", JSON.stringify(userData));
 
         setUser(userData);
@@ -59,11 +77,12 @@ export function AuthProvider({ children }) {
       const response = await api.post("/auth/login", { email, password });
 
       if (response.data.success) {
-        const { accessToken, refreshToken, user: userData } = response.data;
+        const { accessToken, user: userData } = response.data;
 
-        // Save to local storage
-        localStorage.setItem("accessToken", accessToken);
-        localStorage.setItem("refreshToken", refreshToken);
+        // In-memory update karo (Secure!)
+        setAccessToken(accessToken);
+        
+        // Localstorage mein sirf user info save karo (non-sensitive)
         localStorage.setItem("user", JSON.stringify(userData));
 
         setUser(userData);
@@ -82,14 +101,15 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     setLoading(true);
     try {
-      // Backend logout endpoint pe request bhejo (Optional: refresh token delete karne ke liye)
+      // Backend logout call karo (ye HttpOnly cookie bhi clear kar dega)
       await api.post("/auth/logout");
     } catch (error) {
       console.error("Backend logout error:", error);
     } finally {
-      // Local cleanups hamesha karo chahe API call succeed ho ya fail
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
+      // In-memory token empty karo
+      setAccessToken("");
+      
+      // Localstorage delete karo
       localStorage.removeItem("user");
       setUser(null);
       setLoading(false);
