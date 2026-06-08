@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
+import ApiError from "../utils/apiError.js";
 
 // ─── Token generators ───────────────────────────────────────────────────────
 const generateAccessToken = (userId) => {
@@ -19,7 +20,7 @@ export const registerUser = async ({ name, email, password }) => {
 
   // 1. check email already exist karta hai?
   const existingUser = await User.findOne({ email });
-  if (existingUser) throw new Error("Email already registered");
+  if (existingUser) throw new ApiError(409, "Email already registered");
 
   // 2. user create karo (password model mein auto hash hoga)
   const user = await User.create({ name, email, password });
@@ -49,11 +50,11 @@ export const loginUser = async ({ email, password }) => {
 
   // 1. user find karo — password bhi chahiye isliye +password
   const user = await User.findOne({ email }).select("+password");
-  if (!user) throw new Error("Invalid email or password");
+  if (!user) throw new ApiError(401, "Invalid email or password");
 
   // 2. password compare karo
   const isMatch = await user.comparePassword(password);
-  if (!isMatch) throw new Error("Invalid email or password");
+  if (!isMatch) throw new ApiError(401, "Invalid email or password");
 
   // 3. tokens banao
   const accessToken  = generateAccessToken(user._id);
@@ -78,14 +79,14 @@ export const loginUser = async ({ email, password }) => {
 // ─── Refresh Token ──────────────────────────────────────────────────────────
 export const refreshAccessToken = async (token) => {
 
-  if (!token) throw new Error("Refresh token missing");
+  if (!token) throw new ApiError(401, "Refresh token missing");
 
   // 1. token verify karo
   const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
 
   // 2. user find karo DB mein — refreshToken bhi chahiye
   const user = await User.findById(decoded.id).select("+refreshToken");
-  if (!user || user.refreshToken !== token) throw new Error("Invalid refresh token");
+  if (!user || user.refreshToken !== token) throw new ApiError(403, "Invalid refresh token");
 
   // 3. naya access token banao
   const newAccessToken = generateAccessToken(user._id);

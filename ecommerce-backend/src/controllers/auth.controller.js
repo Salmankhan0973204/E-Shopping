@@ -4,6 +4,8 @@ import {
   refreshAccessToken,
   logoutUser,
 } from "../services/auth.service.js";
+import { sendSuccess } from "../utils/apiResponse.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
 // Helper function to set Refresh Token Cookie
 const setRefreshTokenCookie = (res, refreshToken) => {
@@ -15,66 +17,52 @@ const setRefreshTokenCookie = (res, refreshToken) => {
   });
 };
 
-export const register = async (req, res, next) => {
-  try {
-    const result = await registerUser(req.body);
+// ─── Register ───────────────────────────────────────────────────────────────
+export const register = asyncHandler(async (req, res) => {
+  const result = await registerUser(req.body);
 
-    // Cookie set karo
-    setRefreshTokenCookie(res, result.refreshToken);
+  // Cookie set karo
+  setRefreshTokenCookie(res, result.refreshToken);
 
-    // Send response (bina refresh token ke)
-    res.status(201).json({
-      success: true,
-      accessToken: result.accessToken,
-      user: result.user,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+  // Send response (bina refresh token ke)
+  sendSuccess(res, 201, "User registered successfully", {
+    accessToken: result.accessToken,
+    user: result.user,
+  });
+});
 
-export const login = async (req, res) => {
-  try {
-    const result = await loginUser(req.body);
+// ─── Login ──────────────────────────────────────────────────────────────────
+export const login = asyncHandler(async (req, res) => {
+  const result = await loginUser(req.body);
 
-    // Cookie set karo
-    setRefreshTokenCookie(res, result.refreshToken);
+  // Cookie set karo
+  setRefreshTokenCookie(res, result.refreshToken);
 
-    res.status(200).json({
-      success: true,
-      accessToken: result.accessToken,
-      user: result.user,
-    });
-  } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
-  }
-};
+  sendSuccess(res, 200, "Login successful", {
+    accessToken: result.accessToken,
+    user: result.user,
+  });
+});
 
-export const refresh = async (req, res) => {
-  try {
-    // Body ke bajaye cookie se refresh token nikalo
-    const refreshToken = req.cookies.refreshToken;
-    
-    const result = await refreshAccessToken(refreshToken);
-    res.status(200).json({ success: true, ...result });
-  } catch (error) {
-    res.status(401).json({ success: false, message: error.message });
-  }
-};
+// ─── Refresh Token ──────────────────────────────────────────────────────────
+export const refresh = asyncHandler(async (req, res) => {
+  // Body ke bajaye cookie se refresh token nikalo
+  const refreshToken = req.cookies.refreshToken;
 
-export const logout = async (req, res) => {
-  try {
-    await logoutUser(req.user.id);
-    
-    // Cookie ko clear karo
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-    });
+  const result = await refreshAccessToken(refreshToken);
+  sendSuccess(res, 200, "Token refreshed", result);
+});
 
-    res.status(200).json({ success: true, message: "Logged out successfully" });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
+// ─── Logout ─────────────────────────────────────────────────────────────────
+export const logout = asyncHandler(async (req, res) => {
+  await logoutUser(req.user.id);
+
+  // Cookie ko clear karo
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  });
+
+  sendSuccess(res, 200, "Logged out successfully");
+});

@@ -1,11 +1,9 @@
 import express from "express";
-import mongoose from "mongoose";
-import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.routes.js";
-
-dotenv.config();
+import productRoutes from "./routes/product.routes.js";
+import errorHandler from "./middleware/error.middleware.js";
 
 const app = express();
 
@@ -22,18 +20,14 @@ app.use(cookieParser()); // ← Cookies parse karne ke liye
 
 // ✅ API routes
 app.use("/api/auth", authRoutes);
+app.use("/api/products", productRoutes);
 
 // ✅ "/" route
 app.get("/", (req, res) => {
   res.send("hello from server");
 });
 
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log("MongoDB connected ✅");
-    app.listen(process.env.PORT, () => {
-      console.log(`Server running on port ${process.env.PORT} 🚀`);
-    });
-  })
-  .catch((err) => console.error("DB connection failed ❌", err));
+// ✅ Global Error Handler (saare routes ke BAAD hona chahiye)
+app.use(errorHandler);
+
+export default app;
