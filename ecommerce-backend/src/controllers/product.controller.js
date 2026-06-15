@@ -13,14 +13,12 @@ export const create = asyncHandler(async (req, res) => {
   // createdBy field mein logged-in admin ka ID dalo
   const data = { ...req.body, createdBy: req.user._id };
   const product = await createProduct(data);
-
   sendSuccess(res, 201, "Product created successfully", { product });
 });
 
 // ─── Get All Products (Public) ──────────────────────────────────────────────
 export const getAll = asyncHandler(async (req, res) => {
   const products = await getAllProducts();
-
   sendSuccess(res, 200, "Products fetched successfully", { 
     count: products.length,
     products,
@@ -30,7 +28,6 @@ export const getAll = asyncHandler(async (req, res) => {
 // ─── Get Single Product (Public) ────────────────────────────────────────────
 export const getOne = asyncHandler(async (req, res) => {
   const product = await getProductById(req.params.id);
-
   sendSuccess(res, 200, "Product fetched successfully", { product });
 });
 
@@ -39,13 +36,11 @@ export const update = asyncHandler(async (req, res) => {
   // updatedBy field mein logged-in admin ka ID dalo
   const data = { ...req.body, updatedBy: req.user._id };
   const product = await updateProduct(req.params.id, data);
-
   sendSuccess(res, 200, "Product updated successfully", { product });
 });
 
 // ─── Delete Product (Admin Only) ────────────────────────────────────────────
 export const remove = asyncHandler(async (req, res) => {
   await deleteProduct(req.params.id);
-
   sendSuccess(res, 200, "Product deleted successfully");
 });

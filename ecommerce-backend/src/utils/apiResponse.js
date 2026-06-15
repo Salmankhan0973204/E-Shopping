@@ -8,11 +8,11 @@
  * @param {string} message - Success message
  * @param {object} data - Response data (optional)
  */
-export const sendSuccess = (res, statusCode, message, data = {}) => {
+export const sendSuccess = (res, statusCode, message, data) => {
   return res.status(statusCode).json({
     success: true,
     message,
-    ...data,
+    data,
   });
 };
 
