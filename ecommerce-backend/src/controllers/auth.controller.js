@@ -54,8 +54,8 @@ export const refresh = asyncHandler(async (req, res) => {
 });
 
 // ─── Logout ─────────────────────────────────────────────────────────────────
-export const logout = asyncHandler(async (req, res) => {
-  await logoutUser(req.user.id);
+export const logout = asyncHandler(async (userId, res) => {
+  await logoutUser(userId);
 
   // Cookie ko clear karo
   res.clearCookie("refreshToken", {

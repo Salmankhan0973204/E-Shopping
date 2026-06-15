@@ -45,7 +45,12 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // Agar error 401 (Unauthorized) hai aur humne pehle retry nahi kiya hai
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url.includes("/auth/refresh") &&
+      !originalRequest.url.includes("/auth/login")
+    ) {
       originalRequest._retry = true;
 
       try {
@@ -85,7 +90,13 @@ const handleGlobalLogout = () => {
   setAccessToken("");
   if (typeof window !== "undefined") {
     localStorage.removeItem("user"); // sirf user info store rahegi non-critical data
-    window.location.href = "/login";
+    // Avoid infinite reload loops if already on login or register
+    if (
+      window.location.pathname !== "/login" &&
+      window.location.pathname !== "/register"
+    ) {
+      window.location.href = "/login";
+    }
   }
 };
 

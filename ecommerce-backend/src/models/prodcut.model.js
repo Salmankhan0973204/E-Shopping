@@ -5,21 +5,29 @@ import mongoose from "mongoose";
 // public_id chahiye taaki baad mein Cloudinary se image delete kar sako
 const cloudinaryImageSchema = new mongoose.Schema(
   {
-    url: { type: String, required: true },       // ← Cloudinary CDN URL
-    public_id: { type: String, required: true },  // ← Cloudinary ka unique ID (delete ke liye)
+    url: { type: String, required: true }, // ← Cloudinary CDN URL
+    public_id: { type: String, required: true }, // ← Cloudinary ka unique ID (delete ke liye)
   },
-  { _id: false } // ← extra _id mat banao nested doc mein
+  { _id: false }, // ← extra _id mat banao nested doc mein
 );
 
 // ─── Product Schema ─────────────────────────────────────────────────────────
 const productSchema = new mongoose.Schema(
   {
     // Basic Info
-    name: { type: String, required: [true, "Product name is required"], trim: true },
+    name: {
+      type: String,
+      required: [true, "Product name is required"],
+      trim: true,
+    },
     slug: { type: String, required: true, unique: true, lowercase: true },
     shortDescription: { type: String, maxlength: 300 },
     fullDescription: { type: String },
-    category: { type: String, required: [true, "Category is required"] },
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: [true, "Category is required"],
+    },
     subCategory: { type: String },
     brand: { type: String },
 
@@ -29,7 +37,12 @@ const productSchema = new mongoose.Schema(
     currency: { type: String, default: "USD" },
 
     // Inventory
-    sku: { type: String, required: [true, "SKU is required"], unique: true, uppercase: true },
+    sku: {
+      type: String,
+      required: [true, "SKU is required"],
+      unique: true,
+      uppercase: true,
+    },
     stock: { type: Number, default: 0, min: 0 },
     stockStatus: {
       type: String,
@@ -70,7 +83,7 @@ const productSchema = new mongoose.Schema(
       ref: "User",
     },
   },
-  { timestamps: true } // ← createdAt & updatedAt auto add hoga
+  { timestamps: true }, // ← createdAt & updatedAt auto add hoga
 );
 
 export const Product = mongoose.model("Product", productSchema);

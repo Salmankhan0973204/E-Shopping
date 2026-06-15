@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
-const addressSchema = new mongoose.Schema({
+export const addressSchema = new mongoose.Schema({
   street:  { type: String },
   city:    { type: String },
   state:   { type: String },
@@ -70,3 +70,4 @@ userSchema.methods.comparePassword = async function (enteredPassword) {
 };
 
 export const User = mongoose.model("User", userSchema);
+
