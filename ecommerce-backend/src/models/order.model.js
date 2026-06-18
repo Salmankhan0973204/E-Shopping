@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
-import { addressSchema } from "./user.model";
-import { cartItemSchema } from "./cart.model";
+import { addressSchema } from "./user.model.js";
+import { cartItemSchema } from "./cart.model.js";
 
 const orderSchema = new mongoose.Schema(
   {
