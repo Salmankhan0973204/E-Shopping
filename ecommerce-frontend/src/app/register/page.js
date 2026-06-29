@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { User, Mail, Lock, Eye, EyeOff, Loader2, ShoppingBag, Check, X } from "lucide-react";
 
 export default function RegisterPage() {
   const { register, loading } = useAuth();
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -48,6 +50,8 @@ export default function RegisterPage() {
     const result = await register(name, email, password);
     if (!result.success) {
       setError(result.error);
+    } else {
+      router.push("/admin");
     }
   };
 
