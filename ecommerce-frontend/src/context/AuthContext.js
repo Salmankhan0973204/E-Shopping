@@ -18,7 +18,7 @@ export function AuthProvider({ children }) {
         // App load hote hi backend se naya access token maango (cookies automatically jayengi)
         const response = await api.post("/auth/refresh");
         if (response.data.success) {
-          const { accessToken } = response.data;
+          const { accessToken } = response.data.data;
           setAccessToken(accessToken);
 
           // User detail browser database (localStorage) se uthao
@@ -50,7 +50,7 @@ export function AuthProvider({ children }) {
       });
 
       if (response.data.success) {
-        const { accessToken, user: userData } = response.data;
+        const { accessToken, user: userData } = response.data.data;
 
         // In-memory update karo (Secure!)
         setAccessToken(accessToken);
@@ -59,7 +59,6 @@ export function AuthProvider({ children }) {
         localStorage.setItem("user", JSON.stringify(userData));
 
         setUser(userData);
-        router.push("/"); // Redirect to home page
         return { success: true };
       }
     } catch (error) {
@@ -77,7 +76,7 @@ export function AuthProvider({ children }) {
       const response = await api.post("/auth/login", { email, password });
 
       if (response.data.success) {
-        const { accessToken, user: userData } = response.data;
+        const { accessToken, user: userData } = response.data.data;
 
         // In-memory update karo (Secure!)
         setAccessToken(accessToken);
@@ -86,7 +85,6 @@ export function AuthProvider({ children }) {
         localStorage.setItem("user", JSON.stringify(userData));
 
         setUser(userData);
-        router.push("/"); // Redirect to home page
         return { success: true };
       }
     } catch (error) {

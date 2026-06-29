@@ -6,7 +6,7 @@ const createProduct = async (body) => {
 };
 
 const getAllProducts = async () => {
-  const products = await Product.find({ isActive: true });
+  const products = await Product.find({ status: "active" }).populate("category", "name");
   return products;
 };
 
