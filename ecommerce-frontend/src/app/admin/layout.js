@@ -48,6 +48,7 @@ export default function AdminLayout({ children }) {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (!loading) {
@@ -55,6 +56,20 @@ export default function AdminLayout({ children }) {
       else if (user.role !== "admin") router.push("/");
     }
   }, [user, loading]);
+
+  // Close sidebar on mobile when navigating
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setSidebarOpen(false);
+      } else {
+        setSidebarOpen(true);
+      }
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   if (loading)
     return (
@@ -71,8 +86,20 @@ export default function AdminLayout({ children }) {
 
   return (
     <div className="flex h-screen bg-gray-950 text-gray-100 overflow-hidden">
+      {/* ─── MOBILE OVERLAY ─── */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-20 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* ─── SIDEBAR ─── */}
-      <aside className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col flex-shrink-0">
+      <aside
+        className={`${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } fixed md:relative md:translate-x-0 z-30 w-64 bg-gray-900 border-r border-gray-800 flex flex-col flex-shrink-0 transition-transform duration-300 ease-in-out`}
+      >
         {/* Logo */}
         <div className="p-6 border-b border-gray-800">
           <div className="flex items-center gap-3">
@@ -138,20 +165,32 @@ export default function AdminLayout({ children }) {
       </aside>
 
       {/* ─── MAIN CONTENT ─── */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto min-w-0">
         {/* Topbar */}
-        <div className="sticky top-0 z-10 bg-gray-950/80 backdrop-blur-sm border-b border-gray-800 px-8 py-4">
+        <div className="sticky top-0 z-10 bg-gray-950/80 backdrop-blur-sm border-b border-gray-800 px-4 md:px-8 py-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">
-              Welcome back, <span className="text-gray-300 font-medium">{user?.name || "Admin"}</span>
-            </p>
+            <div className="flex items-center gap-3">
+              {/* Toggle Sidebar Button */}
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="p-2 rounded-xl text-gray-400 hover:bg-gray-800 hover:text-gray-100 transition-all duration-200 md:hidden"
+                aria-label="Toggle sidebar"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <p className="text-sm text-gray-500">
+                Welcome back, <span className="text-gray-300 font-medium">{user?.name || "Admin"}</span>
+              </p>
+            </div>
             <div className="flex items-center gap-2 text-xs text-gray-600 bg-gray-900 px-3 py-1.5 rounded-full border border-gray-800">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
               System Online
             </div>
           </div>
         </div>
-        <div className="p-8">
+        <div className="p-4 md:p-8">
           {children}
         </div>
       </main>
