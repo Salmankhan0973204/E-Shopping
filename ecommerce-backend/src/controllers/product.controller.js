@@ -71,7 +71,8 @@ export const create = asyncHandler(async (req, res) => {
 
 // ─── Get All Products (Public) ──────────────────────────────────────────────
 export const getAll = asyncHandler(async (req, res) => {
-  const products = await getAllProducts();
+    const { search, category, minPrice, maxPrice, sort } = req.query;
+  const products = await getAllProducts({ search, category, minPrice, maxPrice, sort });
   sendSuccess(res, 200, "Products fetched successfully", { 
     count: products.length,
     products,
