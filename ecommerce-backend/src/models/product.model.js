@@ -82,6 +82,15 @@ const productSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    // Status ke baad add karo
+ratings: { 
+  type: Number, 
+  default: 0 
+},
+numReviews: { 
+  type: Number, 
+  default: 0 
+},
   },
   { timestamps: true }, // ← createdAt & updatedAt auto add hoga
 );

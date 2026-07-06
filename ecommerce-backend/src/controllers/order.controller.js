@@ -5,6 +5,7 @@ import {
   getAllOrder,
   getOrderById,
   updateOrder,
+  getOrdersByUser,
 } from "../services/order.service.js";
 import { sendSuccess } from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -20,6 +21,14 @@ export const getAll = asyncHandler(async (req, res) => {
   sendSuccess(res, 200, "Order fetched successfully", {
     count: order.length,
     order,
+  });
+});
+
+export const getMyOrders = asyncHandler(async (req, res) => {
+  const orders = await getOrdersByUser(req.user._id);
+  sendSuccess(res, 200, "Orders fetched successfully", {
+    count: orders.length,
+    orders,
   });
 });
 
