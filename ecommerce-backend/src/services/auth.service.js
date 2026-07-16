@@ -1,66 +1,61 @@
 import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
 import ApiError from "../utils/apiError.js";
+import { sendVerificationEmail } from "../utils/email.js";
+import crypto from "crypto"; // ← upar add karo
 
 // ─── Token generators ───────────────────────────────────────────────────────
 const generateAccessToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
-    expiresIn: "15m", // ← short lived
+    expiresIn: "7d",
   });
 };
 
 const generateRefreshToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_REFRESH_SECRET, {
-    expiresIn: "7d", // ← long lived
+    expiresIn: "7d",
   });
 };
 
 // ─── Register ───────────────────────────────────────────────────────────────
 export const registerUser = async ({ name, email, password }) => {
-
-  // 1. check email already exist karta hai?
   const existingUser = await User.findOne({ email });
   if (existingUser) throw new ApiError(409, "Email already registered");
+  const verificationToken = crypto.randomBytes(32).toString("hex");
 
-  // 2. user create karo (password model mein auto hash hoga)
-  const user = await User.create({ name, email, password });
+  const user = await User.create({ name, email, password, verificationToken });
 
-  // 3. tokens banao
-  const accessToken  = generateAccessToken(user._id);
+  const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
 
-  // 4. refresh token DB mein save karo
   user.refreshToken = refreshToken;
   await user.save();
+  const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+  await sendVerificationEmail(email, name, verifyUrl);
 
   return {
     accessToken,
     refreshToken,
     user: {
-      id:    user._id,
-      name:  user.name,
+      id: user._id,
+      name: user.name,
       email: user.email,
-      role:  user.role,
+      role: user.role,
     },
   };
 };
 
 // ─── Login ──────────────────────────────────────────────────────────────────
 export const loginUser = async ({ email, password }) => {
-
-  // 1. user find karo — password bhi chahiye isliye +password
   const user = await User.findOne({ email }).select("+password");
   if (!user) throw new ApiError(401, "Invalid email or password");
 
-  // 2. password compare karo
   const isMatch = await user.comparePassword(password);
   if (!isMatch) throw new ApiError(401, "Invalid email or password");
 
-  // 3. tokens banao
-  const accessToken  = generateAccessToken(user._id);
+  const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
 
-  // 4. refresh token DB mein update karo
   user.refreshToken = refreshToken;
   await user.save();
 
@@ -68,17 +63,16 @@ export const loginUser = async ({ email, password }) => {
     accessToken,
     refreshToken,
     user: {
-      id:    user._id,
-      name:  user.name,
+      id: user._id,
+      name: user.name,
       email: user.email,
-      role:  user.role,
+      role: user.role,
     },
   };
 };
 
 // ─── Refresh Token ──────────────────────────────────────────────────────────
 export const refreshAccessToken = async (token) => {
-
   if (!token) throw new ApiError(401, "Refresh token missing");
 
   // 1. token verify karo
@@ -86,7 +80,8 @@ export const refreshAccessToken = async (token) => {
 
   // 2. user find karo DB mein — refreshToken bhi chahiye
   const user = await User.findById(decoded.id).select("+refreshToken");
-  if (!user || user.refreshToken !== token) throw new ApiError(403, "Invalid refresh token");
+  if (!user || user.refreshToken !== token)
+    throw new ApiError(403, "Invalid refresh token");
 
   // 3. naya access token banao
   const newAccessToken = generateAccessToken(user._id);
@@ -98,4 +93,16 @@ export const refreshAccessToken = async (token) => {
 export const logoutUser = async (userId) => {
   // DB se refresh token hata do
   await User.findByIdAndUpdate(userId, { refreshToken: null });
+};
+
+
+export const verifyEmail = async (token) => {
+  const user = await User.findOne({ verificationToken: token }).select("+verificationToken");
+  if (!user) throw new ApiError(400, "Invalid token");
+
+  user.isVerified = true;
+  user.verificationToken = undefined;
+  await user.save();
+
+  return { message: "Email verified successfully" };
 };

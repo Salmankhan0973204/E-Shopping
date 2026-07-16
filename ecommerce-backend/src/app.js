@@ -7,6 +7,8 @@ import errorHandler from "./middleware/error.middleware.js";
 import categoryRoutes from "./routes/category.routes.js";
 import orderRoutes from "./routes/order.route.js";
 import reviewRoutes from "./routes/review.routes.js";
+import paymentRoutes from "./routes/payment.route.js";
+import dashboardRoutes from "./routes/dashboard.routes.js";
 
 const app = express();
 
@@ -27,6 +29,8 @@ app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/products/:id/reviews", reviewRoutes)
+app.use("/api/payment", paymentRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 //  "/" route
 app.get("/", (req, res) => {

@@ -5,9 +5,9 @@ import Navbar from "./components/Navbar";
 import { ShoppingBag } from "lucide-react";
 
 export default function ClientAppContent({ children }) {
-  const { loading } = useAuth();
+  const { isInitialized } = useAuth();
 
-  if (loading) {
+  if (!isInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950">
         <div className="text-white">Loading...</div>

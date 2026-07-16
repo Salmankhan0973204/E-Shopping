@@ -2,9 +2,9 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
 export const addressSchema = new mongoose.Schema({
-  street:  { type: String },
-  city:    { type: String },
-  state:   { type: String },
+  street: { type: String },
+  city: { type: String },
+  state: { type: String },
   country: { type: String },
   zipCode: { type: String },
 });
@@ -49,13 +49,17 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    verificationToken: {
+      type: String,
+      select: false,
+    },
 
-    resetPasswordToken:   { type: String, select: false },
-    resetPasswordExpires: { type: Date,   select: false },
+    resetPasswordToken: { type: String, select: false },
+    resetPasswordExpires: { type: Date, select: false },
   },
   {
     timestamps: true, // ← createdAt & updatedAt auto add hoga
-  }
+  },
 );
 
 // ─── Hash password before saving ───────────────────────────────────────────
@@ -70,4 +74,3 @@ userSchema.methods.comparePassword = async function (enteredPassword) {
 };
 
 export const User = mongoose.model("User", userSchema);
-
