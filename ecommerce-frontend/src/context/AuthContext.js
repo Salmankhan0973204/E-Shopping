@@ -9,6 +9,7 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
   const router = useRouter();
 
   // ─── Initial Load Check (Silent Refresh) ──────────────────────────────────
@@ -33,6 +34,7 @@ export function AuthProvider({ children }) {
         setUser(null);
       } finally {
         setLoading(false);
+        setIsInitialized(true);
       }
     };
 
@@ -116,7 +118,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, isInitialized, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

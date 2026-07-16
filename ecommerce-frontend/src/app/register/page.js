@@ -16,6 +16,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // ─── Password Validation Criteria ──────────────────────────────────────────
   const validationRules = {
@@ -51,7 +52,8 @@ export default function RegisterPage() {
     if (!result.success) {
       setError(result.error);
     } else {
-      router.push("/login");
+      setIsRedirecting(true);
+      router.push("/check-email");
     }
   };
 

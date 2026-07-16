@@ -3,6 +3,7 @@ import {
   loginUser,
   refreshAccessToken,
   logoutUser,
+  verifyEmail,
 } from "../services/auth.service.js";
 import { sendSuccess } from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -66,3 +67,13 @@ export const logout = asyncHandler(async (userId, res) => {
 
   sendSuccess(res, 200, "Logged out successfully");
 });
+
+export const verifyEmailController = async (req, res, next) => {
+  try {
+    const { token } = req.query;
+    await verifyEmail(token);
+    sendSuccess(res, 200, "Email verified successfully");
+  } catch (error) {
+    next(error);
+  }
+};
