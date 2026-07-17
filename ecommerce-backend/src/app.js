@@ -15,7 +15,7 @@ const app = express();
 //  CORS configure karo (credentials allow karne ke liye aur port 3000 ko access dene ke liye)
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000", "https://e-shopping-two-zeta.vercel.app"],
     credentials: true, // ← Taaki frontend aur backend cookies share kar sakein
   }),
 );
