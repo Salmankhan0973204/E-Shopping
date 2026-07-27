@@ -1,10 +1,15 @@
 "use client";
 import { useState, useEffect } from "react";
 import api from "../../../lib/axios";
+import { getPageNumbers } from "../../../lib/pagination";
+
+const PAGE_SIZE = 20;
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
@@ -32,12 +37,13 @@ export default function AdminProducts() {
   const [form, setForm] = useState(initialFormState);
 
   // ─── Fetch Data ──────────────────────────────────────────────────────────
-  const fetchProducts = async () => {
+  const fetchProducts = async (targetPage = page) => {
     setLoading(true);
     try {
-      const res = await api.get("/products");
+      const res = await api.get("/products", { params: { page: targetPage, limit: PAGE_SIZE } });
       const fetchedProducts = res.data?.data?.products || res.data?.products || [];
       setProducts(fetchedProducts);
+      setPagination(res.data?.data?.pagination || { total: fetchedProducts.length, totalPages: 1 });
     } catch (error) {
       console.error("Failed to fetch products:", error);
     } finally {
@@ -55,7 +61,10 @@ export default function AdminProducts() {
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchProducts(page);
+  }, [page]);
+
+  useEffect(() => {
     fetchCategories();
   }, []);
 
@@ -116,7 +125,7 @@ export default function AdminProducts() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white">Products</h1>
-          <p className="text-gray-500 text-sm mt-1">{products.length} products total</p>
+          <p className="text-gray-500 text-sm mt-1">{pagination.total} products total</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
@@ -435,6 +444,53 @@ export default function AdminProducts() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-800">
+            <p className="text-sm text-gray-500">
+              Page {page} of {pagination.totalPages}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1 || loading}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-800 border border-gray-700 text-gray-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                Prev
+              </button>
+
+              {getPageNumbers(page, pagination.totalPages).map((p, idx) =>
+                p === "..." ? (
+                  <span key={`dots-${idx}`} className="px-1 text-gray-600">
+                    ...
+                  </span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    disabled={loading}
+                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-all disabled:cursor-not-allowed ${
+                      p === page
+                        ? "bg-violet-600 text-white"
+                        : "bg-gray-800 border border-gray-700 text-gray-300 hover:text-white"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                )
+              )}
+
+              <button
+                onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                disabled={page === pagination.totalPages || loading}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-800 border border-gray-700 text-gray-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
       </div>

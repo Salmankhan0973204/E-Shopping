@@ -4,7 +4,10 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import api from "@/lib/axios";
-import { Search, ShoppingBag, Filter, X, Loader2 } from "lucide-react";
+import { getPageNumbers } from "@/lib/pagination";
+import { Search, ShoppingBag, Filter, X, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+
+const PAGE_SIZE = 12;
 
 export default function ProductsPage() {
   const searchParams = useSearchParams();
@@ -12,17 +15,42 @@ export default function ProductsPage() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "");
   const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
+
+  // Debounce free-text search input before it triggers a refetch
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput), 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Reset to page 1 whenever a filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [search, selectedCategory]);
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
         const [prodRes, catRes] = await Promise.all([
-          api.get("/products"),
+          api.get("/products", {
+            params: {
+              page,
+              limit: PAGE_SIZE,
+              search: search || undefined,
+              category: selectedCategory || undefined,
+            },
+          }),
           api.get("/categories"),
         ]);
-        if (prodRes.data.success) setProducts(prodRes.data.data.products);
+        if (prodRes.data.success) {
+          setProducts(prodRes.data.data.products || []);
+          setPagination(prodRes.data.data.pagination || { total: 0, totalPages: 1 });
+        }
         if (catRes.data.success) setCategories(catRes.data.data.categories);
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -31,17 +59,9 @@ export default function ProductsPage() {
       }
     };
     fetchData();
-  }, []);
+  }, [page, search, selectedCategory]);
 
-  const filteredProducts = products.filter((p) => {
-    const matchesSearch =
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.shortDescription?.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = !selectedCategory || p.category?._id === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  if (loading) {
+  if (loading && products.length === 0) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <Loader2 className="w-10 h-10 text-purple-500 animate-spin" />
@@ -61,8 +81,8 @@ export default function ProductsPage() {
               <input
                 type="text"
                 placeholder="Search products..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50"
               />
             </div>
@@ -135,7 +155,7 @@ export default function ProductsPage() {
 
       {/* Products Grid */}
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {filteredProducts.length === 0 ? (
+        {products.length === 0 ? (
           <div className="text-center py-20">
             <ShoppingBag className="w-16 h-16 text-slate-700 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-slate-400">No products found</h3>
@@ -144,10 +164,13 @@ export default function ProductsPage() {
         ) : (
           <>
             <p className="text-sm text-slate-500 mb-6">
-              Showing {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""}
+              Showing {(page - 1) * PAGE_SIZE + 1}
+              {"–"}
+              {Math.min(page * PAGE_SIZE, pagination.total)} of {pagination.total} product
+              {pagination.total !== 1 ? "s" : ""}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredProducts.map((product) => (
+            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 ${loading ? "opacity-50 pointer-events-none" : ""}`}>
+              {products.map((product) => (
                 <Link
                   key={product._id}
                   href={`/products/${product._id}`}
@@ -199,6 +222,50 @@ export default function ProductsPage() {
                 </Link>
               ))}
             </div>
+
+            {/* Pagination Controls */}
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-10">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Prev
+                </button>
+
+                {getPageNumbers(page, pagination.totalPages).map((p, idx) =>
+                  p === "..." ? (
+                    <span key={`dots-${idx}`} className="px-2 text-slate-600">
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      disabled={loading}
+                      className={`w-9 h-9 rounded-lg text-sm font-medium transition-all disabled:cursor-not-allowed ${
+                        p === page
+                          ? "bg-purple-600 text-white"
+                          : "bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+
+                <button
+                  onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                  disabled={page === pagination.totalPages}
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

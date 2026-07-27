@@ -1,37 +1,179 @@
 import express from "express";
 import { create, getAll, getOne, update, remove } from "../controllers/product.controller.js";
 import { protect, adminOnly } from "../middleware/auth.middleware.js";
-import { upload } from "../middleware/multer.middleware.js";
 
 const router = express.Router();
 
-// ─── Public Routes ──────────────────────────────────────────────────────────
-router.get("/",    getAll);   // GET    /api/products       → saare products
-router.get("/:id", getOne);   // GET    /api/products/:id   → ek product
+/**
+ * @swagger
+ * tags:
+ *   name: Products
+ *   description: Product management API
+ */
 
-// ─── Admin Routes (protect + adminOnly) ─────────────────────────────────────
+/**
+ * @swagger
+ * /api/products:
+ *   get:
+ *     summary: Get all products (paginated)
+ *     tags: [Products]
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 12
+ *         description: Max 100
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Category ObjectId
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: isFeatured
+ *         schema:
+ *           type: boolean
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           enum: [price_asc, price_desc, newest, name_asc]
+ *     responses:
+ *       200:
+ *         description: A paginated list of products
+ */
+router.get("/",    getAll);
+
+/**
+ * @swagger
+ * /api/products/{id}:
+ *   get:
+ *     summary: Get a product by ID
+ *     tags: [Products]
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Product details
+ */
+router.get("/:id", getOne);
+
+/**
+ * @swagger
+ * /api/products:
+ *   post:
+ *     summary: Create a new product (Admin only)
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               mainImage:
+ *                 type: object
+ *                 properties:
+ *                   url:
+ *                     type: string
+ *                   public_id:
+ *                     type: string
+ *               gallery:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     url:
+ *                       type: string
+ *                     public_id:
+ *                       type: string
+ *     responses:
+ *       201:
+ *         description: Product created successfully
+ */
 router.post(
   "/",      
   protect, 
   adminOnly, 
-  upload.fields([
-    { name: 'mainImage', maxCount: 1 },
-    { name: 'gallery', maxCount: 5 }
-  ]),
   create
-);  // POST   /api/products
+);
 
+/**
+ * @swagger
+ * /api/products/{id}:
+ *   put:
+ *     summary: Update a product (Admin only)
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: Product updated successfully
+ */
 router.put(
   "/:id",    
   protect, 
   adminOnly, 
-  upload.fields([
-    { name: 'mainImage', maxCount: 1 },
-    { name: 'gallery', maxCount: 5 }
-  ]),
   update
-);  // PUT    /api/products/:id
+);
 
-router.delete("/:id", protect, adminOnly, remove);  // DELETE /api/products/:id
+/**
+ * @swagger
+ * /api/products/{id}:
+ *   delete:
+ *     summary: Delete a product (Admin only)
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Product deleted successfully
+ */
+router.delete("/:id", protect, adminOnly, remove);
 
 export default router;

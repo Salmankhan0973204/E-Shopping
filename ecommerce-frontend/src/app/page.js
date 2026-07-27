@@ -16,15 +16,11 @@ export default function Home() {
     const fetchData = async () => {
       try {
         const [prodRes, catRes] = await Promise.all([
-          api.get("/products"),
+          api.get("/products", { params: { limit: 8, isFeatured: true } }),
           api.get("/categories"),
         ]);
         if (prodRes.data.success) {
-          const all = prodRes.data.data.products || [];
-          const featured = all
-            .filter((p) => p.status === "active")
-            .slice(0, 8);
-          setFeaturedProducts(featured);
+          setFeaturedProducts(prodRes.data.data.products || []);
         }
         if (catRes.data.success) {
           setCategories(catRes.data.data.categories || []);
@@ -51,7 +47,7 @@ export default function Home() {
               <Star className="w-4 h-4" />
               Premium Shopping Experience
             </div>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-none mb-6">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-none mb-6 text-white">
               Discover Your{" "}
               <span className="bg-gradient-to-r from-purple-500 via-blue-400 to-green-400 bg-clip-text text-transparent">
                 Perfect Style

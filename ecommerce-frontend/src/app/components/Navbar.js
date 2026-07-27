@@ -62,24 +62,28 @@ export default function Navbar() {
           </Link>
           {user ? (
             <>
-              <Link
-                href="/orders"
-                className="text-sm font-semibold text-slate-400 hover:text-white transition-colors flex items-center gap-1.5"
-              >
-                <Package className="w-4 h-4" />
-                My Orders
-              </Link>
-              <Link
-                href="/cart"
-                className="relative text-sm font-semibold text-slate-400 hover:text-white transition-colors"
-              >
-                <ShoppingCart className="w-5 h-5" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-bold flex items-center justify-center">
-                    {cartCount > 9 ? "9+" : cartCount}
-                  </span>
-                )}
-              </Link>
+              {user.role !== "admin" && (
+                <Link
+                  href="/orders"
+                  className="text-sm font-semibold text-slate-400 hover:text-white transition-colors flex items-center gap-1.5"
+                >
+                  <Package className="w-4 h-4" />
+                  My Orders
+                </Link>
+              )}
+              {user.role !== "admin" && (
+                <Link
+                  href="/cart"
+                  className="relative text-sm font-semibold text-slate-400 hover:text-white transition-colors"
+                >
+                  <ShoppingCart className="w-5 h-5" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-bold flex items-center justify-center">
+                      {cartCount > 9 ? "9+" : cartCount}
+                    </span>
+                  )}
+                </Link>
+              )}
               {user.role === "admin" && (
                 <Link
                   href="/admin"
@@ -128,14 +132,16 @@ export default function Navbar() {
 
         {/* Mobile Menu Button */}
         <div className="flex items-center gap-3 md:hidden">
-          <Link href="/cart" className="relative">
-            <ShoppingCart className="w-5 h-5 text-slate-400" />
-            {cartCount > 0 && (
-              <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-bold flex items-center justify-center">
-                {cartCount > 9 ? "9+" : cartCount}
-              </span>
-            )}
-          </Link>
+          {user?.role !== "admin" && (
+            <Link href="/cart" className="relative">
+              <ShoppingCart className="w-5 h-5 text-slate-400" />
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-purple-600 text-white text-[10px] font-bold flex items-center justify-center">
+                  {cartCount > 9 ? "9+" : cartCount}
+                </span>
+              )}
+            </Link>
+          )}
           <button
             onClick={() => setMobileMenu(!mobileMenu)}
             className="text-slate-400 hover:text-white"
@@ -158,13 +164,15 @@ export default function Navbar() {
             </Link>
             {user ? (
               <>
-                <Link
-                  href="/orders"
-                  onClick={() => setMobileMenu(false)}
-                  className="block px-4 py-2.5 bg-slate-900/60 border border-slate-800 rounded-xl text-sm font-semibold text-slate-300 hover:text-white"
-                >
-                  My Orders
-                </Link>
+                {user.role !== "admin" && (
+                  <Link
+                    href="/orders"
+                    onClick={() => setMobileMenu(false)}
+                    className="block px-4 py-2.5 bg-slate-900/60 border border-slate-800 rounded-xl text-sm font-semibold text-slate-300 hover:text-white"
+                  >
+                    My Orders
+                  </Link>
+                )}
                 {user.role === "admin" && (
                   <Link
                     href="/admin"

@@ -11,14 +11,128 @@ import { protect, adminOnly } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-// ─── Customer Routes ────────────────────────────────────────────────────────
-router.post("/", protect, create);              // POST   /api/orders
-router.get("/my-orders", protect, getMyOrders); // GET    /api/orders/my-orders
-router.get("/:id", protect, getOne);            // GET    /api/orders/:id
+/**
+ * @swagger
+ * tags:
+ *   name: Orders
+ *   description: Order management API
+ */
 
-// ─── Admin Routes ───────────────────────────────────────────────────────────
-router.get("/", protect, adminOnly, getAll);    // GET    /api/orders
-router.put("/:id", protect, adminOnly, update); // PUT    /api/orders/:id
-router.delete("/:id", protect, adminOnly, remove); // DELETE /api/orders/:id
+/**
+ * @swagger
+ * /api/orders:
+ *   post:
+ *     summary: Create a new order
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       201:
+ *         description: Order created successfully
+ */
+router.post("/", protect, create);
+
+/**
+ * @swagger
+ * /api/orders/my-orders:
+ *   get:
+ *     summary: Get logged in user orders
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User's orders
+ */
+router.get("/my-orders", protect, getMyOrders);
+
+/**
+ * @swagger
+ * /api/orders/{id}:
+ *   get:
+ *     summary: Get order by ID
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Order details
+ */
+router.get("/:id", protect, getOne);
+
+/**
+ * @swagger
+ * /api/orders:
+ *   get:
+ *     summary: Get all orders (Admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of all orders
+ */
+router.get("/", protect, adminOnly, getAll);
+
+/**
+ * @swagger
+ * /api/orders/{id}:
+ *   put:
+ *     summary: Update order status (Admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Order updated successfully
+ */
+router.put("/:id", protect, adminOnly, update);
+
+/**
+ * @swagger
+ * /api/orders/{id}:
+ *   delete:
+ *     summary: Delete order (Admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Order deleted successfully
+ */
+router.delete("/:id", protect, adminOnly, remove);
 
 export default router;
