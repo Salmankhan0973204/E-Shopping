@@ -45,11 +45,13 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // Agar error 401 (Unauthorized) hai aur humne pehle retry nahi kiya hai
+    // Note: network error par error.config undefined ho sakta hai, isliye optional chaining
     if (
       error.response?.status === 401 &&
+      originalRequest &&
       !originalRequest._retry &&
-      !originalRequest.url.includes("/auth/refresh") &&
-      !originalRequest.url.includes("/auth/login")
+      !originalRequest.url?.includes("/auth/refresh") &&
+      !originalRequest.url?.includes("/auth/login")
     ) {
       originalRequest._retry = true;
 
@@ -62,9 +64,11 @@ api.interceptors.response.use(
           { withCredentials: true } // ← Credentials ke sath call karo
         );
 
-        if (response.data.success) {
-          const { accessToken } = response.data;
+        // Backend har response ko { success, message, data } mein wrap karta hai,
+        // isliye token response.data.data ke andar hota hai — response.data mein nahi
+        const accessToken = response.data?.data?.accessToken;
 
+        if (response.data?.success && accessToken) {
           // In-memory state update karo
           setAccessToken(accessToken);
 
@@ -74,6 +78,11 @@ api.interceptors.response.use(
           // Original request ko dobara execute karo
           return api(originalRequest);
         }
+
+        // Refresh call to chali lekin token nahi mila — ise failure hi maano,
+        // warna hum khaali token cache karke "Bearer undefined" bhejte rahenge
+        handleGlobalLogout();
+        return Promise.reject(error);
       } catch (refreshError) {
         console.error("Refresh token verification failed, logging out...", refreshError);
         handleGlobalLogout();

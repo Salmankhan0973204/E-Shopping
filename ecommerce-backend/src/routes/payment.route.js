@@ -16,6 +16,9 @@ const router = express.Router();
  * /api/payment/create-intent:
  *   post:
  *     summary: Create payment intent
+ *     description: >
+ *       The charge amount is calculated on the server from the database prices of
+ *       the given products. Any amount sent by the client is ignored.
  *     tags: [Payment]
  *     security:
  *       - bearerAuth: []
@@ -25,12 +28,25 @@ const router = express.Router();
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [items]
  *             properties:
- *               amount:
- *                 type: number
+ *               items:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required: [product, quantity]
+ *                   properties:
+ *                     product:
+ *                       type: string
+ *                       description: Product ID
+ *                     quantity:
+ *                       type: integer
+ *                       minimum: 1
  *     responses:
  *       200:
  *         description: Payment intent created
+ *       400:
+ *         description: Invalid cart, product unavailable, or not enough stock
  */
 router.post("/create-intent", protect, createIntent);
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { readCart, writeCart } from "@/lib/cart";
 import { ShoppingCart, Trash2, Plus, Minus, ArrowLeft, ShoppingBag, Loader2 } from "lucide-react";
 
 export default function CartPage() {
@@ -13,8 +14,7 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    setCartItems(cart);
+    setCartItems(readCart());
     setLoading(false);
   }, []);
 
@@ -24,18 +24,18 @@ export default function CartPage() {
       item.product === productId ? { ...item, quantity: newQty } : item
     );
     setCartItems(updated);
-    localStorage.setItem("cart", JSON.stringify(updated));
+    writeCart(updated);
   };
 
   const removeItem = (productId) => {
     const updated = cartItems.filter((item) => item.product !== productId);
     setCartItems(updated);
-    localStorage.setItem("cart", JSON.stringify(updated));
+    writeCart(updated);
   };
 
   const clearCart = () => {
     setCartItems([]);
-    localStorage.setItem("cart", "[]");
+    writeCart([]);
   };
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);

@@ -23,6 +23,16 @@ const orderSchema = new mongoose.Schema(
       enum: ["pending", "shipped", "delivered", "cancelled"],
       default: "pending",
     },
+
+    // Stripe payment ka reference. unique isliye ke ek hi successful payment se
+    // koi baar baar order na bana sake. sparse isliye ke purane orders mein ye
+    // field hai hi nahi — unhe duplicate null nahi maana jaana chahiye
+    paymentIntentId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+
     address: addressSchema,
   },
   { timestamps: true },

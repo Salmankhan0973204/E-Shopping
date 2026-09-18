@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/axios";
+import { readCart, writeCart } from "@/lib/cart";
 import { useAuth } from "@/context/AuthContext";
 import { Loader2, Check, ShoppingBag, CreditCard, MapPin, Package, ShieldCheck } from "lucide-react";
 import Link from "next/link";
@@ -41,7 +42,7 @@ function CheckoutContent() {
       router.push("/login");
       return;
     }
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const cart = readCart();
     if (cart.length === 0) {
       router.push("/cart");
       return;
@@ -54,10 +55,19 @@ function CheckoutContent() {
     setAddress({ ...address, [e.target.name]: e.target.value });
   };
 
+  // Sirf display ke liye — asli price hamesha server DB se nikaalta hai
   const subtotal = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
   );
+
+  // Server ko sirf product id aur quantity bhejo. Price server khud DB se
+  // nikaalta hai, taaki localStorage ki price badal kar koi kam paise na de sake
+  const orderItems = () =>
+    cartItems.map((item) => ({
+      product: item.product,
+      quantity: item.quantity,
+    }));
 
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
@@ -65,7 +75,7 @@ function CheckoutContent() {
     setPlacing(true);
     try {
       const { data } = await api.post("/payment/create-intent", {
-        amount: subtotal,
+        items: orderItems(),
       });
       const clientSecret = data.data.clientSecret;
 
@@ -80,17 +90,12 @@ function CheckoutContent() {
       }
 
       await api.post("/orders", {
-        items: cartItems.map((item) => ({
-          product: item.product,
-          quantity: item.quantity,
-          price: item.price,
-        })),
-        totalPrice: subtotal,
+        items: orderItems(),
         address,
         paymentIntentId: result.paymentIntent.id,
       });
 
-      localStorage.setItem("cart", "[]");
+      writeCart([]);
       setPlaced(true);
     } catch (err) {
       setOrderError(err.response?.data?.message || "Failed to place order.");

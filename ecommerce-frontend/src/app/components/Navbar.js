@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { getCartCount, CART_UPDATED_EVENT } from "@/lib/cart";
 import {
   ShoppingBag,
   ShoppingCart,
@@ -21,17 +22,18 @@ export default function Navbar() {
   const [cartCount, setCartCount] = useState(0);
 
   // Update cart count
+  // "cartUpdated" isi tab ke andar fire hota hai (writeCart se), aur
+  // "storage" dusre tabs se — dono milkar badge ko sync rakhte hain
   useEffect(() => {
     const updateCartCount = () => {
-      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-      setCartCount(cart.reduce((sum, item) => sum + item.quantity, 0));
+      setCartCount(getCartCount());
     };
     updateCartCount();
     window.addEventListener("storage", updateCartCount);
-    window.addEventListener("cartUpdated", updateCartCount);
+    window.addEventListener(CART_UPDATED_EVENT, updateCartCount);
     return () => {
       window.removeEventListener("storage", updateCartCount);
-      window.removeEventListener("cartUpdated", updateCartCount);
+      window.removeEventListener(CART_UPDATED_EVENT, updateCartCount);
     };
   }, []);
 

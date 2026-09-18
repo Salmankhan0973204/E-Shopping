@@ -23,6 +23,10 @@ const router = express.Router();
  * /api/orders:
  *   post:
  *     summary: Create a new order
+ *     description: >
+ *       Prices and the order total are recalculated on the server from the database.
+ *       The payment intent is verified with Stripe before the order is saved, and a
+ *       payment can only be used for one order.
  *     tags: [Orders]
  *     security:
  *       - bearerAuth: []
@@ -32,9 +36,40 @@ const router = express.Router();
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [items, address, paymentIntentId]
+ *             properties:
+ *               items:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required: [product, quantity]
+ *                   properties:
+ *                     product:
+ *                       type: string
+ *                       description: Product ID
+ *                     quantity:
+ *                       type: integer
+ *                       minimum: 1
+ *               address:
+ *                 type: object
+ *                 properties:
+ *                   street: { type: string }
+ *                   city: { type: string }
+ *                   state: { type: string }
+ *                   country: { type: string }
+ *                   zipCode: { type: string }
+ *               paymentIntentId:
+ *                 type: string
+ *                 description: ID of the succeeded Stripe PaymentIntent
  *     responses:
  *       201:
  *         description: Order created successfully
+ *       400:
+ *         description: Invalid cart, or the payment was not completed / does not match the total
+ *       403:
+ *         description: The payment belongs to another user
+ *       409:
+ *         description: An order already exists for this payment
  */
 router.post("/", protect, create);
 

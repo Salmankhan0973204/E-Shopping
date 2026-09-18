@@ -12,6 +12,8 @@ import orderRoutes from "./routes/order.route.js";
 import reviewRoutes from "./routes/review.routes.js";
 import paymentRoutes from "./routes/payment.route.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
+import uploadRoutes from "./routes/upload.routes.js";
+import { corsOptions } from "./config/cors.js";
 
 const app = express();
 
@@ -31,7 +33,8 @@ const swaggerOptions = {
       { name: "Orders", description: "Order management API" },
       { name: "Reviews", description: "Product reviews API" },
       { name: "Payment", description: "Payment processing API" },
-      { name: "Dashboard", description: "Admin dashboard statistics API" }
+      { name: "Dashboard", description: "Admin dashboard statistics API" },
+      { name: "Uploads", description: "Cloudinary signed upload API" }
     ],
     servers: [
       {
@@ -68,15 +71,8 @@ const swaggerOptions = {
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-//  CORS configure karo (credentials allow karne ke liye aur port 3000 ko access dene ke liye)
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      callback(null, true); // ← sab origins allow
-    },
-    credentials: true, // ← Taaki frontend aur backend cookies share kar sakein
-  })
-);
+//  CORS configure karo — allow-list src/config/cors.js mein hai
+app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(cookieParser()); // ← Cookies parse karne ke liye
@@ -89,6 +85,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/products/:id/reviews", reviewRoutes)
 app.use("/api/payment", paymentRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/uploads", uploadRoutes);
 
 //  "/" route
 app.get("/", (req, res) => {

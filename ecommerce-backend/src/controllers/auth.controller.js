@@ -55,8 +55,10 @@ export const refresh = asyncHandler(async (req, res) => {
 });
 
 // ─── Logout ─────────────────────────────────────────────────────────────────
-export const logout = asyncHandler(async (userId, res) => {
-  await logoutUser(userId);
+// asyncHandler handler ko fn(req, res, next) ke saath call karta hai, isliye pehla
+// argument hamesha req hota hai — user ka id req.user se lo (route par protect laga hai)
+export const logout = asyncHandler(async (req, res) => {
+  await logoutUser(req.user._id);
 
   // Cookie ko clear karo
   res.clearCookie("refreshToken", {

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import api from "@/lib/axios";
+import { readCart, writeCart } from "@/lib/cart";
 import { useAuth } from "@/context/AuthContext";
 import { ShoppingBag, ShoppingCart, ChevronLeft, Loader2, Minus, Plus, Check, Star } from "lucide-react";
 import Link from "next/link";
@@ -40,7 +41,7 @@ export default function ProductDetailPage() {
     setAddingToCart(true);
     try {
       // Store in localStorage for guest/manage cart
-      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      const cart = readCart();
       const existingIndex = cart.findIndex((item) => item.product === id);
       if (existingIndex >= 0) {
         cart[existingIndex].quantity += quantity;
@@ -53,7 +54,9 @@ export default function ProductDetailPage() {
           image: product.mainImage?.url || "",
         });
       }
-      localStorage.setItem("cart", JSON.stringify(cart));
+      // writeCart "cartUpdated" event bhi fire karta hai, isliye Navbar ka
+      // badge bina reload ke turant update ho jaata hai
+      writeCart(cart);
       setAddedToCart(true);
       setTimeout(() => setAddedToCart(false), 2000);
     } catch (err) {

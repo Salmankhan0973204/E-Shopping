@@ -1,9 +1,11 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "../../../lib/axios";
 import { getPageNumbers } from "../../../lib/pagination";
+import { uploadImagesToCloudinary } from "../../../lib/cloudinaryUpload";
 
 const PAGE_SIZE = 20;
+const MAX_GALLERY_IMAGES = 5;
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
@@ -13,6 +15,7 @@ export default function AdminProducts() {
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState([]);
   
   const initialFormState = {
@@ -35,6 +38,29 @@ export default function AdminProducts() {
   };
   
   const [form, setForm] = useState(initialFormState);
+
+  // File inputs uncontrolled hote hain — setForm unhe khaali nahi karta,
+  // isliye save ke baad inhe ref se manually reset karna padta hai
+  const mainImageInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
+
+  const resetForm = () => {
+    setForm(initialFormState);
+    if (mainImageInputRef.current) mainImageInputRef.current.value = "";
+    if (galleryInputRef.current) galleryInputRef.current.value = "";
+  };
+
+  // "up to 5" sirf hint nahi rehna chahiye — usko enforce bhi karo
+  const handleGalleryChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > MAX_GALLERY_IMAGES) {
+      alert(`You can select up to ${MAX_GALLERY_IMAGES} gallery images.`);
+      e.target.value = "";
+      setForm({ ...form, galleryFiles: [] });
+      return;
+    }
+    setForm({ ...form, galleryFiles: files });
+  };
 
   // ─── Fetch Data ──────────────────────────────────────────────────────────
   const fetchProducts = async (targetPage = page) => {
@@ -83,39 +109,38 @@ export default function AdminProducts() {
   // ─── Create Product ──────────────────────────────────────────────────────
   const handleCreate = async (e) => {
     e.preventDefault();
+    if (!form.mainImageFile) {
+      alert("Please select a main image.");
+      return;
+    }
+    setSaving(true);
     try {
-      const formData = new FormData();
-      // append primitive fields
-      Object.keys(form).forEach((key) => {
-        if (key !== 'mainImageFile' && key !== 'galleryFiles') {
-          formData.append(key, form[key]);
-        }
-      });
-      
-      // append files
-      if (form.mainImageFile) {
-        formData.append('mainImage', form.mainImageFile);
-      }
-      
-      if (form.galleryFiles && form.galleryFiles.length > 0) {
-        for (let i = 0; i < form.galleryFiles.length; i++) {
-          formData.append('gallery', form.galleryFiles[i]);
-        }
-      }
+      // Images seedha browser se Cloudinary par jaati hain — backend ko sirf
+      // {url, public_id} JSON milta hai
+      const [mainImage, ...gallery] = await uploadImagesToCloudinary([
+        form.mainImageFile,
+        ...form.galleryFiles,
+      ]);
 
-      // append auto-generated slug
-      const generatedSlug = form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-      formData.append('slug', generatedSlug);
+      const { mainImageFile, galleryFiles, ...fields } = form;
+      const payload = {
+        ...fields,
+        slug: form.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''),
+        mainImage,
+        gallery,
+      };
+      // Empty optional number field Mongoose cast error dega, isliye hata do
+      if (!payload.salePrice) delete payload.salePrice;
 
-      await api.post("/products", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
+      await api.post("/products", payload);
       setShowModal(false);
-      setForm(initialFormState);
+      resetForm();
       fetchProducts();
     } catch (error) {
       console.error("Failed to create product:", error);
-      alert("Error creating product.");
+      alert(error.response?.data?.message || error.message || "Error creating product.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -321,9 +346,10 @@ export default function AdminProducts() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-300 mb-1.5">Main Image</label>
-                  <input 
+                  <input
                     type="file"
                     accept="image/*"
+                    ref={mainImageInputRef}
                     onChange={(e) => setForm({...form, mainImageFile: e.target.files[0]})}
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 outline-none focus:border-violet-500 text-gray-100 transition-colors file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-violet-600 file:text-white file:text-sm file:font-medium hover:file:bg-violet-700"
                   />
@@ -331,11 +357,12 @@ export default function AdminProducts() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-300 mb-1.5">Gallery Images</label>
-                  <input 
+                  <input
                     type="file"
                     accept="image/*"
                     multiple
-                    onChange={(e) => setForm({...form, galleryFiles: Array.from(e.target.files)})}
+                    ref={galleryInputRef}
+                    onChange={handleGalleryChange}
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2 outline-none focus:border-violet-500 text-gray-100 transition-colors file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-violet-600 file:text-white file:text-sm file:font-medium hover:file:bg-violet-700"
                   />
                   <p className="text-xs text-gray-500 mt-1">Select up to 5 gallery images</p>
@@ -377,11 +404,12 @@ export default function AdminProducts() {
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="submit"
-                  className="flex-1 bg-violet-600 text-white py-3 rounded-xl font-semibold hover:bg-violet-700 transition-colors shadow-lg shadow-violet-500/20"
+                  disabled={saving}
+                  className="flex-1 bg-violet-600 text-white py-3 rounded-xl font-semibold hover:bg-violet-700 transition-colors shadow-lg shadow-violet-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Save Product
+                  {saving ? "Uploading..." : "Save Product"}
                 </button>
               </div>
             </form>

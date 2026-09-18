@@ -11,9 +11,16 @@ import { sendSuccess } from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
 export const create = asyncHandler(async (req, res) => {
- const data = { ...req.body, user: req.user._id }; 
-  const order = await createOrder(data);
-  sendSuccess(res,201, "Order created successfully", { order });
+  // Pura req.body spread mat karo — warna client khud status ya totalPrice set kar deta hai.
+  // Sirf wahi fields lo jo client ko bhejni chahiye
+  const { items, address, paymentIntentId } = req.body;
+  const order = await createOrder({
+    userId: req.user._id,
+    items,
+    address,
+    paymentIntentId,
+  });
+  sendSuccess(res, 201, "Order created successfully", { order });
 });
 
 export const getAll = asyncHandler(async (req, res) => {
